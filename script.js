@@ -71,15 +71,19 @@ async function runTask() {
     console.log('获取到的 Token:', token);
 
     // 上班打卡时间（08:20 至 08:30）
-    const shangbanTime = getRandomTimeInRange(8, 20, 8, 30);
+    const shangbanTime = getRandomTimeInRange(9, 8, 9, 10);
     console.log('随机上班打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
 
-    // 模拟等待到上班打卡时间
+    // 修改等待时间计算逻辑
     const now = dayjs();
-    if (now.isBefore(shangbanTime)) {
-      const waitTime = shangbanTime.diff(now, 'millisecond');
-      console.log(`等待 ${waitTime / 1000} 秒后执行上班打卡...`);
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    const targetTime = dayjs(shangbanTime).year(now.year()).month(now.month()).date(now.date());
+
+    if (now.isBefore(targetTime)) {
+      const waitTime = targetTime.diff(now, 'millisecond');
+      if (waitTime > 0) {
+        console.log(`等待 ${Math.round(waitTime / 1000)} 秒后执行上班打卡...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
     }
 
     // 上班打卡
