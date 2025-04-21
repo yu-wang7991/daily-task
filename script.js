@@ -1,5 +1,13 @@
 const axios = require('axios');
 const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+// 添加时区插件
+dayjs.extend(utc);
+dayjs.extend(timezone);
+// 设置默认时区为中国时区
+dayjs.tz.setDefault('Asia/Shanghai');
 
 // 动态获取当前年份
 const currentYear = dayjs().year();
@@ -28,8 +36,8 @@ const holidays = [
 
 // 获取随机时间（范围内的随机分钟数）
 function getRandomTimeInRange(startHour, startMinute, endHour, endMinute) {
-  const startTime = dayjs().hour(startHour).minute(startMinute).second(0);
-  const endTime = dayjs().hour(endHour).minute(endMinute).second(0);
+  const startTime = dayjs().tz('Asia/Shanghai').hour(startHour).minute(startMinute).second(0);
+  const endTime = dayjs().tz('Asia/Shanghai').hour(endHour).minute(endMinute).second(0);
   const randomMinutes = Math.floor(Math.random() * (endTime.diff(startTime, 'minute') + 1));
   return startTime.add(randomMinutes, 'minute');
 }
@@ -54,9 +62,9 @@ function isNonWorkingDay(date = dayjs()) {
 
 async function runTask() {
   try {
-    // 当前日期
-    const today = dayjs();
-    console.log('当前日期:', today.format('YYYY-MM-DD'));
+    // 当前日期（使用北京时间）
+    const today = dayjs().tz('Asia/Shanghai');
+    console.log('当前北京时间:', today.format('YYYY-MM-DD HH:mm:ss'));
 
     // 如果是非工作日（包括周末和节假日），则不执行
     if (isNonWorkingDay(today)) {
@@ -70,25 +78,31 @@ async function runTask() {
 
     console.log('获取到的 Token:', token);
 
-    // 上班打卡时间（08:20 至 08:30）
-    const shangbanTime = getRandomTimeInRange(9, 8, 9, 10);
-    console.log('随机上班打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
+    // 修改上班打卡时间范围（北京时间 08:20 至 08:25）
+    const shangbanTime = getRandomTimeInRange(8, 20, 8, 25);
 
-    // 修改等待时间计算逻辑
-    const now = dayjs();
-    const targetTime = dayjs(shangbanTime).year(now.year()).month(now.month()).date(now.date());
+    // 优化等待时间计算逻辑（使用北京时间）
+    const now = dayjs().tz('Asia/Shanghai');
+    let targetTime = now.hour(shangbanTime.hour())
+      .minute(shangbanTime.minute())
+      .second(0);
 
-    if (now.isBefore(targetTime)) {
-      const waitTime = targetTime.diff(now, 'millisecond');
-      if (waitTime > 0) {
-        console.log(`等待 ${Math.round(waitTime / 1000)} 秒后执行上班打卡...`);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
+    // 如果目标时间已经过了，设置为明天的同一时间
+    if (now.isAfter(targetTime)) {
+      targetTime = targetTime.add(1, 'day');
+    }
+
+    const waitTime = targetTime.diff(now);
+    console.log('当前时间:', now.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('目标打卡时间:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
+    console.log(`需要等待: ${Math.floor(waitTime / 1000)} 秒`);
+
+    if (waitTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
     // 上班打卡
     const shangbanResponse = await axios.get('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
-      // const shangbanResponse = await axios.get('https://fanyi.baidu.com/mtpe-individual/multimodal?aldtype=16047#/auto/zh', {
       params: {
         address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
         latitude: 32.37548584197275,
