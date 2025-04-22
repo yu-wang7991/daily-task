@@ -80,21 +80,18 @@ async function runTask() {
 
     // 修改上班打卡时间范围（北京时间 08:20 至 08:25）
     const shangbanTime = getRandomTimeInRange(8, 20, 8, 25);
-
-    // 优化等待时间计算逻辑（使用北京时间）
     const now = dayjs().tz('Asia/Shanghai');
-    let targetTime = now.hour(shangbanTime.hour())
-      .minute(shangbanTime.minute())
-      .second(0);
 
-    // 如果目标时间已经过了，设置为明天的同一时间
-    if (now.isAfter(targetTime)) {
-      targetTime = targetTime.add(1, 'day');
+    // 如果当前时间已经超过了今天的打卡时间范围，直接退出
+    if (now.hour() > 8 || (now.hour() === 8 && now.minute() >= 25)) {
+      console.log('当前时间已超过打卡时间范围，退出任务');
+      return;
     }
 
-    const waitTime = targetTime.diff(now);
+    // 计算需要等待的时间
+    const waitTime = shangbanTime.diff(now);
     console.log('当前时间:', now.format('YYYY-MM-DD HH:mm:ss'));
-    console.log('目标打卡时间:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('目标打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
     console.log(`需要等待: ${Math.floor(waitTime / 1000)} 秒`);
 
     if (waitTime > 0) {
