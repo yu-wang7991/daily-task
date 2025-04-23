@@ -8,6 +8,8 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai # 设置时区为中国时区
 
     steps:
       - name: Checkout code
@@ -22,4 +24,6 @@ jobs:
         run: npm install axios dayjs
 
       - name: Run script
+        env:
+          TZ: Asia/Shanghai # 确保脚本运行时也使用正确的时区
         run: node script.js
