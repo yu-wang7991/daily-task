@@ -62,6 +62,10 @@ function isNonWorkingDay(date = dayjs()) {
 
 async function runTask() {
   try {
+    // 添加更多日志输出
+    console.log('==== 任务开始执行 ====');
+    console.log('系统环境时区:', process.env.TZ);
+
     // 当前日期（使用北京时间）
     const today = dayjs().tz('Asia/Shanghai');
     console.log('当前北京时间:', today.format('YYYY-MM-DD HH:mm:ss'));
@@ -112,8 +116,12 @@ async function runTask() {
       },
     });
     console.log('上班打卡成功:', shangbanResponse.data);
+
+    console.log('==== 任务执行完成 ====');
   } catch (error) {
-    console.error('发生错误:', error.message);
+    console.error('任务执行失败:', error);
+    // 抛出错误以确保 GitHub Actions 能够捕获到失败状态
+    throw error;
   }
 }
 
