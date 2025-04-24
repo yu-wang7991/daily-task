@@ -62,9 +62,9 @@ function isNonWorkingDay(date = dayjs()) {
 
 async function runTask() {
   try {
-    // 添加更多日志输出
     console.log('==== 任务开始执行 ====');
     console.log('系统环境时区:', process.env.TZ);
+    console.log('打卡时间范围: 08:20-08:30');
 
     // 当前日期（使用北京时间）
     const today = dayjs().tz('Asia/Shanghai');
@@ -76,20 +76,30 @@ async function runTask() {
       return;
     }
 
+    console.log('今天是工作日，开始执行打卡任务...');
+
     // 第一步：获取 Token
+    console.log('正在获取 Token...');
     const tokenResponse = await axios.get('https://wmh.opalvision.net:9001/api/system/app/getOpenToken?openId=odCuL64BaooW5QrpVPkM0STkfgIs');
     const token = tokenResponse.data.token;
 
     console.log('获取到的 Token:', token);
 
-    // 修改上班打卡时间范围（北京时间 08:20 至 08:25）
-    const shangbanTime = getRandomTimeInRange(8, 20, 8, 25);
+    // 修改上班打卡时间范围（北京时间 08:20 至 08:30）
+    const shangbanTime = getRandomTimeInRange(8, 20, 8, 30);
     const now = dayjs().tz('Asia/Shanghai');
 
-    // 如果当前时间已经超过了今天的打卡时间范围，直接退出
-    if (now.hour() > 8 || (now.hour() === 8 && now.minute() >= 25)) {
-      console.log('当前时间已超过打卡时间范围，退出任务');
+    // 修改时间判断逻辑
+    const tooEarly = now.hour() < 8 || (now.hour() === 8 && now.minute() < 20);
+    const tooLate = now.hour() > 8 || (now.hour() === 8 && now.minute() > 30);
+
+    if (tooLate) {
+      console.log('当前时间已超过今日打卡时间范围（08:20-08:30），退出任务');
       return;
+    }
+
+    if (tooEarly) {
+      console.log('当前时间未到打卡时间范围（08:20-08:30），等待中...');
     }
 
     // 计算需要等待的时间
@@ -102,20 +112,35 @@ async function runTask() {
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
-    // 上班打卡
-    const shangbanResponse = await axios.get('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
-      params: {
-        address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
-        latitude: 32.37548584197275,
-        longitude: 119.40709095248346,
-        remote: 0,
-        clockTime: shangbanTime.format('YYYY-MM-DD HH:mm:ss'),
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log('上班打卡成功:', shangbanResponse.data);
+    // 上班打卡部分增加重试逻辑
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        const shangbanResponse = await axios.get('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
+          params: {
+            address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
+            latitude: 32.37548584197275,
+            longitude: 119.40709095248346,
+            remote: 0,
+            clockTime: shangbanTime.format('YYYY-MM-DD HH:mm:ss'),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log('打卡请求成功完成');
+        console.log('打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
+        console.log('服务器响应:', shangbanResponse.data);
+        break;
+      } catch (error) {
+        retryCount++;
+        console.error(`打卡失败 (尝试 ${retryCount}/${maxRetries}):`, error.message);
+        if (retryCount === maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒后重试
+      }
+    }
 
     console.log('==== 任务执行完成 ====');
   } catch (error) {
