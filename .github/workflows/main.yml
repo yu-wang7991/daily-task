@@ -2,7 +2,7 @@ name: Daily Attendance Task
 
 on:
   schedule:
-    - cron: "15 0 * * *" # UTC 时间 00:15（北京时间 08:15）
+    - cron: "0 0 * * *" # UTC 00:00（北京时间 08:00）
   workflow_dispatch: # 支持手动触发
 
 jobs:
@@ -19,6 +19,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "16"
+
+      - name: Debug Info
+        run: |
+          echo "Current time: $(date)"
+          echo "Timezone: $TZ"
 
       - name: Install dependencies
         run: npm install axios dayjs

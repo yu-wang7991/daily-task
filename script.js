@@ -64,6 +64,8 @@ async function runTask() {
   try {
     console.log('==== 任务开始执行 ====');
     console.log('系统环境时区:', process.env.TZ);
+    console.log('当前时间戳:', Date.now());
+    console.log('当前系统时间:', new Date().toString());
     console.log('打卡时间范围: 08:20-08:30');
 
     // 当前日期（使用北京时间）
@@ -73,6 +75,11 @@ async function runTask() {
     // 如果是非工作日（包括周末和节假日），则不执行
     if (isNonWorkingDay(today)) {
       console.log('今天是非工作日，跳过打卡任务。');
+      console.log('日期详情:', {
+        formattedDate: today.format('YYYY-MM-DD'),
+        dayOfWeek: today.day(),
+        isHoliday: holidays.includes(today.format('YYYY-MM-DD'))
+      });
       return;
     }
 
