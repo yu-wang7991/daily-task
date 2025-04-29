@@ -89,35 +89,11 @@ async function runTask() {
     console.log('正在获取 Token...');
     const tokenResponse = await axios.get('https://wmh.opalvision.net:9001/api/system/app/getOpenToken?openId=odCuL64BaooW5QrpVPkM0STkfgIs');
     const token = tokenResponse.data.token;
-
     console.log('获取到的 Token:', token);
 
-    // 修改上班打卡时间范围（北京时间 08:20 至 08:30）
+    // 生成今天的随机打卡时间（8:20-8:30之间）
     const shangbanTime = getRandomTimeInRange(8, 20, 8, 30);
-    const now = dayjs().tz('Asia/Shanghai');
-
-    // 修改时间判断逻辑
-    const tooEarly = now.hour() < 8 || (now.hour() === 8 && now.minute() < 20);
-    const tooLate = now.hour() > 8 || (now.hour() === 8 && now.minute() > 30);
-
-    if (tooLate) {
-      console.log('当前时间已超过今日打卡时间范围（08:20-08:30），退出任务');
-      return;
-    }
-
-    if (tooEarly) {
-      console.log('当前时间未到打卡时间范围（08:20-08:30），等待中...');
-    }
-
-    // 计算需要等待的时间
-    const waitTime = shangbanTime.diff(now);
-    console.log('当前时间:', now.format('YYYY-MM-DD HH:mm:ss'));
-    console.log('目标打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
-    console.log(`需要等待: ${Math.floor(waitTime / 1000)} 秒`);
-
-    if (waitTime > 0) {
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-    }
+    console.log('计划打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
 
     // 上班打卡部分增加重试逻辑
     let retryCount = 0;
@@ -152,7 +128,6 @@ async function runTask() {
     console.log('==== 任务执行完成 ====');
   } catch (error) {
     console.error('任务执行失败:', error);
-    // 抛出错误以确保 GitHub Actions 能够捕获到失败状态
     throw error;
   }
 }
