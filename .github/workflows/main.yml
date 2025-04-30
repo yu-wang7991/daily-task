@@ -2,7 +2,7 @@ name: Daily Attendance Task
 
 on:
   schedule:
-    - cron: "0 0 * * *" # UTC 00:00（北京时间 08:00）
+    - cron: "20 0 * * *" # UTC 00:20（北京时间 08:20）
   workflow_dispatch: # 支持手动触发
 
 jobs:
