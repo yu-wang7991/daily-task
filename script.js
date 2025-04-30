@@ -34,14 +34,6 @@ const holidays = [
   `${currentYear}-10-06`,
 ];
 
-// 获取随机时间（范围内的随机分钟数）
-function getRandomTimeInRange(startHour, startMinute, endHour, endMinute) {
-  const startTime = dayjs().tz('Asia/Shanghai').hour(startHour).minute(startMinute).second(0);
-  const endTime = dayjs().tz('Asia/Shanghai').hour(endHour).minute(endMinute).second(0);
-  const randomMinutes = Math.floor(Math.random() * (endTime.diff(startTime, 'minute') + 1));
-  return startTime.add(randomMinutes, 'minute');
-}
-
 // 判断是否为节假日或周末
 function isNonWorkingDay(date = dayjs()) {
   if (!date || typeof date.format !== 'function') {
@@ -68,60 +60,66 @@ async function runTask() {
     console.log('当前系统时间:', new Date().toString());
     console.log('打卡时间范围: 08:20-08:30');
 
-    // 当前日期（使用北京时间）
-    const today = dayjs().tz('Asia/Shanghai');
-    console.log('当前北京时间:', today.format('YYYY-MM-DD HH:mm:ss'));
+    const now = dayjs().tz('Asia/Shanghai');
+    console.log('当前北京时间:', now.format('YYYY-MM-DD HH:mm:ss'));
 
-    // 如果是非工作日（包括周末和节假日），则不执行
-    if (isNonWorkingDay(today)) {
+    // 判断当前时间是否在打卡时间范围内
+    const hour = now.hour();
+    const minute = now.minute();
+    const currentMinutes = hour * 60 + minute;
+    const startMinutes = 8 * 60 + 20;
+    const endMinutes = 8 * 60 + 30;
+
+    if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
+      console.log('当前时间不在打卡时间范围内（08:20-08:30）');
+      return;
+    }
+
+    // 如果是非工作日，则不执行
+    if (isNonWorkingDay(now)) {
       console.log('今天是非工作日，跳过打卡任务。');
       console.log('日期详情:', {
-        formattedDate: today.format('YYYY-MM-DD'),
-        dayOfWeek: today.day(),
-        isHoliday: holidays.includes(today.format('YYYY-MM-DD'))
+        formattedDate: now.format('YYYY-MM-DD'),
+        dayOfWeek: now.day(),
+        isHoliday: holidays.includes(now.format('YYYY-MM-DD'))
       });
       return;
     }
 
     console.log('今天是工作日，开始执行打卡任务...');
 
-    // 第一步：获取 Token
+    // 获取 Token
     console.log('正在获取 Token...');
     const tokenResponse = await axios.get('https://wmh.opalvision.net:9001/api/system/app/getOpenToken?openId=odCuL64BaooW5QrpVPkM0STkfgIs');
     const token = tokenResponse.data.token;
     console.log('获取到的 Token:', token);
 
-    // 生成今天的随机打卡时间（8:20-8:30之间）
-    const shangbanTime = getRandomTimeInRange(8, 20, 8, 30);
-    console.log('计划打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
-
-    // 上班打卡部分增加重试逻辑
+    // 使用当前时间作为打卡时间
     let retryCount = 0;
     const maxRetries = 3;
 
     while (retryCount < maxRetries) {
       try {
-        const shangbanResponse = await axios.get('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
-          params: {
-            address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
-            latitude: 32.37548584197275,
-            longitude: 119.40709095248346,
-            remote: 0,
-            clockTime: shangbanTime.format('YYYY-MM-DD HH:mm:ss'),
-          },
+        const shangbanResponse = await axios.post('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
+          address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
+          latitude: 32.37548584197275,
+          longitude: 119.40709095248346,
+          remote: 0,
+          clockTime: now.format('YYYY-MM-DD HH:mm:ss'),
+        }, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         console.log('打卡请求成功完成');
-        console.log('打卡时间:', shangbanTime.format('YYYY-MM-DD HH:mm:ss'));
+        console.log('打卡时间:', now.format('YYYY-MM-DD HH:mm:ss'));
         console.log('服务器响应:', shangbanResponse.data);
         break;
       } catch (error) {
         retryCount++;
         console.error(`打卡失败 (尝试 ${retryCount}/${maxRetries}):`, error.message);
         if (retryCount === maxRetries) throw error;
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒后重试
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
 
