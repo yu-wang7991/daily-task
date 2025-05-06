@@ -1,41 +1,46 @@
 const axios = require('axios');
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
+const moment = require('moment-timezone');
 
-// 添加时区插件
-dayjs.extend(utc);
-dayjs.extend(timezone);
-// 设置默认时区为中国时区
-dayjs.tz.setDefault('Asia/Shanghai');
+// 设置默认时区
+moment.tz.setDefault('Asia/Shanghai');
 
 // 动态获取当前年份
-const currentYear = dayjs().year();
+const currentYear = moment().year();
 
-// 节假日列表（示例：当前年份的部分节假日）
+// 2024年节假日安排（根据国务院办公厅通知）
 const holidays = [
   `${currentYear}-01-01`, // 元旦
-  `${currentYear}-01-21`, // 春节
-  `${currentYear}-01-22`,
-  `${currentYear}-01-23`,
-  `${currentYear}-01-24`,
-  `${currentYear}-01-25`,
-  `${currentYear}-01-26`,
-  `${currentYear}-01-27`,
-  `${currentYear}-04-05`, // 清明节
+  `${currentYear}-02-10`, // 春节
+  `${currentYear}-02-11`,
+  `${currentYear}-02-12`,
+  `${currentYear}-02-13`,
+  `${currentYear}-02-14`,
+  `${currentYear}-02-15`,
+  `${currentYear}-02-16`,
+  `${currentYear}-02-17`,
+  `${currentYear}-04-04`, // 清明节
+  `${currentYear}-04-05`,
+  `${currentYear}-04-06`,
   `${currentYear}-05-01`, // 劳动节
-  `${currentYear}-06-22`, // 端午节
-  `${currentYear}-09-29`, // 中秋节
+  `${currentYear}-05-02`,
+  `${currentYear}-05-03`,
+  `${currentYear}-05-04`,
+  `${currentYear}-05-05`,
+  `${currentYear}-06-10`, // 端午节
+  `${currentYear}-09-15`, // 中秋节
+  `${currentYear}-09-16`,
+  `${currentYear}-09-17`,
   `${currentYear}-10-01`, // 国庆节
   `${currentYear}-10-02`,
   `${currentYear}-10-03`,
   `${currentYear}-10-04`,
   `${currentYear}-10-05`,
   `${currentYear}-10-06`,
+  `${currentYear}-10-07`,
 ];
 
 // 判断是否为节假日或周末
-function isNonWorkingDay(date = dayjs()) {
+function isNonWorkingDay(date = moment()) {
   if (!date || typeof date.format !== 'function') {
     throw new Error('date 参数无效');
   }
@@ -52,26 +57,50 @@ function isNonWorkingDay(date = dayjs()) {
   return holidays.includes(formattedDate);
 }
 
+// 从网络获取准确时间
+async function getNetworkTime() {
+  const timeServer = 'http://worldtimeapi.org/api/timezone/Asia/Shanghai';
+  const axiosConfig = {
+    timeout: 5000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+  };
+
+  try {
+    const response = await axios.get(timeServer, axiosConfig);
+    if (response.data.datetime) {
+      return moment(response.data.datetime);
+    }
+    throw new Error('无效的时间数据格式');
+  } catch (error) {
+    console.warn(`时间服务器获取失败: ${error.message}`);
+    console.warn('将使用本地时间作为备选');
+    return moment();
+  }
+}
+
 async function runTask() {
   try {
     console.log('==== 任务开始执行 ====');
     console.log('系统环境时区:', process.env.TZ);
-    console.log('当前时间戳:', Date.now());
-    console.log('当前系统时间:', new Date().toString());
+
+    // 获取网络时间
+    const networkTime = await getNetworkTime();
+    const now = networkTime;
+
+    console.log('当前时间信息:');
+    console.log('系统时间:', moment().format('YYYY-MM-DD HH:mm:ss'));
+    console.log('网络时间:', now.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('时区:', now.tz());
+    console.log('时间戳:', now.valueOf());
+
     console.log('打卡时间范围: 08:20-08:30');
 
-    const now = dayjs().tz('Asia/Shanghai');
-    console.log('当前北京时间:', now.format('YYYY-MM-DD HH:mm:ss'));
-
-    // 判断当前时间是否在打卡时间范围内
-    const hour = now.hour();
-    const minute = now.minute();
-    const currentMinutes = hour * 60 + minute;
-    const startMinutes = 8 * 60 + 20;
-    const endMinutes = 8 * 60 + 30;
-
-    if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
-      console.log('当前时间不在打卡时间范围内（08:20-08:30）');
+    // 更新时间判断逻辑
+    const timeString = now.format('HH:mm');
+    if (timeString < '08:20' || timeString > '08:30') {
+      console.log(`当前时间 ${timeString} 不在打卡时间范围内（08:20-08:30）`);
       return;
     }
 
@@ -129,5 +158,11 @@ async function runTask() {
     throw error;
   }
 }
+
+// 添加错误处理
+process.on('unhandledRejection', (error) => {
+  console.error('未处理的Promise拒绝:', error);
+  process.exit(1);
+});
 
 runTask();

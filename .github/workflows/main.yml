@@ -2,7 +2,7 @@ name: Daily Attendance Task
 
 on:
   schedule:
-    - cron: "20 0 * * *" # UTC 00:20（北京时间 08:20）
+    - cron: "22 0 * * *" # UTC 00:22（北京时间 08:22）
   workflow_dispatch: # 支持手动触发
 
 jobs:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Shanghai # 设置时区为中国时区
+      LANG: zh_CN.UTF-8 # 设置语言环境
 
     steps:
       - name: Checkout code
@@ -20,15 +21,24 @@ jobs:
         with:
           node-version: "16"
 
+      - name: Set timezone
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          date
+
       - name: Debug Info
         run: |
           echo "Current time: $(date)"
           echo "Timezone: $TZ"
+          echo "Language: $LANG"
+          echo "Node version: $(node -v)"
 
       - name: Install dependencies
-        run: npm install axios dayjs
+        run: |
+          npm install axios dayjs moment moment-timezone
+          npm list
 
       - name: Run script
         env:
-          TZ: Asia/Shanghai # 确保脚本运行时也使用正确的时区
+          TZ: Asia/Shanghai
         run: node script.js
