@@ -83,7 +83,10 @@ async function getNetworkTime() {
 async function runTask() {
   try {
     console.log('==== 任务开始执行 ====');
+    console.log('执行时间:', new Date().toISOString());
     console.log('系统环境时区:', process.env.TZ);
+    console.log('Node版本:', process.version);
+    console.log('操作系统:', process.platform);
 
     // 获取网络时间
     const networkTime = await getNetworkTime();
@@ -99,8 +102,10 @@ async function runTask() {
 
     // 更新时间判断逻辑
     const timeString = now.format('HH:mm');
+    console.log('当前执行时间点:', timeString);
     if (timeString < '08:20' || timeString > '08:30') {
       console.log(`当前时间 ${timeString} 不在打卡时间范围内（08:20-08:30）`);
+      process.exit(1); // 添加错误退出码
       return;
     }
 
@@ -155,6 +160,8 @@ async function runTask() {
     console.log('==== 任务执行完成 ====');
   } catch (error) {
     console.error('任务执行失败:', error);
+    console.error('错误堆栈:', error.stack);
+    process.exit(1); // 添加错误退出码
     throw error;
   }
 }
