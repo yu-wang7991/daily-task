@@ -82,11 +82,12 @@ async function getNetworkTime() {
 
 async function runTask() {
   try {
-    console.log('==== 任务开始执行 ====');
-    console.log('执行时间:', new Date().toISOString());
-    console.log('系统环境时区:', process.env.TZ);
-    console.log('Node版本:', process.version);
-    console.log('操作系统:', process.platform);
+    console.log('==========================================');
+    console.log(`任务启动时间: ${moment().format('YYYY-MM-DD HH:mm:ss.SSS')}`);
+    console.log('执行环境信息:');
+    console.log(`- Node版本: ${process.version}`);
+    console.log(`- 系统时区: ${process.env.TZ}`);
+    console.log(`- 运行平台: ${process.platform}`);
 
     // 获取网络时间
     const networkTime = await getNetworkTime();
@@ -98,14 +99,14 @@ async function runTask() {
     console.log('时区:', now.tz());
     console.log('时间戳:', now.valueOf());
 
-    console.log('打卡时间范围: 08:20-08:30');
+    console.log('打卡时间范围: 08:20-08:35');
 
     // 更新时间判断逻辑
     const timeString = now.format('HH:mm');
     console.log('当前执行时间点:', timeString);
-    if (timeString < '08:20' || timeString > '08:30') {
-      console.log(`当前时间 ${timeString} 不在打卡时间范围内（08:20-08:30）`);
-      process.exit(1); // 添加错误退出码
+    if (timeString < '08:20' || timeString > '08:35') {  // 扩大时间窗口
+      console.log(`⚠️ 当前时间 ${timeString} 不在打卡时间范围内（08:20-08:35）`);
+      process.exit(1);
       return;
     }
 
@@ -159,16 +160,26 @@ async function runTask() {
 
     console.log('==== 任务执行完成 ====');
   } catch (error) {
-    console.error('任务执行失败:', error);
-    console.error('错误堆栈:', error.stack);
-    process.exit(1); // 添加错误退出码
-    throw error;
+    console.error('❌ 任务执行失败:', error.message);
+    console.error('详细错误信息:', error.stack);
+    console.error('请求信息:', {
+      时间: moment().format('YYYY-MM-DD HH:mm:ss'),
+      错误类型: error.name,
+      状态码: error.response?.status,
+      响应数据: error.response?.data
+    });
+    process.exit(1);
   }
 }
 
-// 添加错误处理
+// 增强错误处理
 process.on('unhandledRejection', (error) => {
   console.error('未处理的Promise拒绝:', error);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('未捕获的异常:', error);
   process.exit(1);
 });
 
