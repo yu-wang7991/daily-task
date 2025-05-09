@@ -44,17 +44,6 @@ jobs:
         env:
           TZ: Asia/Shanghai
         run: |
-          for i in {1..5}; do  # 增加到5次重试
-            echo "=== 执行尝试 $i/5 ==="
-            echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
-            if node script.js; then
-              echo "✅ 脚本执行成功"
-              exit 0
-            else
-              echo "❌ 脚本执行失败"
-              echo "等待45秒后重试..."
-              sleep 45
-            fi
-          done
-          echo "达到最大重试次数，任务失败"
-          exit 1
+          echo "=== 执行脚本 ==="
+          echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          node script.js
