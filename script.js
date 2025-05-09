@@ -57,29 +57,6 @@ function isNonWorkingDay(date = moment()) {
   return holidays.includes(formattedDate);
 }
 
-// 从网络获取准确时间
-async function getNetworkTime() {
-  const timeServer = 'http://worldtimeapi.org/api/timezone/Asia/Shanghai';
-  const axiosConfig = {
-    timeout: 5000,
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-  };
-
-  try {
-    const response = await axios.get(timeServer, axiosConfig);
-    if (response.data.datetime) {
-      return moment(response.data.datetime);
-    }
-    throw new Error('无效的时间数据格式');
-  } catch (error) {
-    console.warn(`时间服务器获取失败: ${error.message}`);
-    console.warn('将使用本地时间作为备选');
-    return moment();
-  }
-}
-
 async function runTask() {
   try {
     console.log('==========================================');
@@ -89,23 +66,21 @@ async function runTask() {
     console.log(`- 系统时区: ${process.env.TZ}`);
     console.log(`- 运行平台: ${process.platform}`);
 
-    // 获取网络时间
-    const networkTime = await getNetworkTime();
-    const now = networkTime;
+    // 使用系统时间（中国时区）
+    const now = moment();
 
     console.log('当前时间信息:');
-    console.log('系统时间:', moment().format('YYYY-MM-DD HH:mm:ss'));
-    console.log('网络时间:', now.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('系统时间:', now.format('YYYY-MM-DD HH:mm:ss'));
     console.log('时区:', now.tz());
     console.log('时间戳:', now.valueOf());
 
-    console.log('打卡时间范围: 08:20-08:35');
+    console.log('打卡时间范围: 08:20-08:30');
 
     // 更新时间判断逻辑
     const timeString = now.format('HH:mm');
     console.log('当前执行时间点:', timeString);
-    if (timeString < '08:20' || timeString > '08:35') {  // 扩大时间窗口
-      console.log(`⚠️ 当前时间 ${timeString} 不在打卡时间范围内（08:20-08:35）`);
+    if (timeString < '08:20' || timeString > '08:30') {  // 调整为8:30
+      console.log(`⚠️ 当前时间 ${timeString} 不在打卡时间范围内（08:20-08:30）`);
       process.exit(1);
       return;
     }
