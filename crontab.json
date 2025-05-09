@@ -1,0 +1,4 @@
+{
+  "schedule": "20 8 * * *",
+  "timezone": "Asia/Shanghai"
+}
