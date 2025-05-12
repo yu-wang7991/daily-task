@@ -21,14 +21,11 @@ jobs:
         with:
           node-version: "16"
 
-      - name: Set timezone
-        run: |
-          sudo timedatectl set-timezone Asia/Shanghai
-          date
-
       - name: Debug Info
+        env:
+          TZ: Asia/Shanghai
         run: |
-          echo "Current time: $(date)"
+          echo "Current time: $(TZ=Asia/Shanghai date)"
           echo "Timezone: $TZ"
           echo "Language: $LANG"
           echo "Node version: $(node -v)"
@@ -45,5 +42,5 @@ jobs:
           TZ: Asia/Shanghai
         run: |
           echo "=== 执行脚本 ==="
-          echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "当前时间: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
           node script.js

@@ -61,13 +61,23 @@ async function runTask() {
   try {
     console.log('==========================================');
     console.log(`任务启动时间: ${moment().format('YYYY-MM-DD HH:mm:ss.SSS')}`);
-    console.log('执行环境信息:');
-    console.log(`- Node版本: ${process.version}`);
-    console.log(`- 系统时区: ${process.env.TZ}`);
-    console.log(`- 运行平台: ${process.platform}`);
+
+    // 增加更多时间调试信息
+    console.log('时间诊断信息:');
+    console.log(`- 原始系统时间: ${new Date()}`);
+    console.log(`- Moment时间: ${moment().format()}`);
+    console.log(`- Moment时区: ${moment().tz()}`);
+    console.log(`- 环境变量TZ: ${process.env.TZ}`);
 
     // 使用系统时间（中国时区）
     const now = moment();
+
+    // 增加时区验证
+    if (now.tz() !== 'Asia/Shanghai') {
+      console.error('警告：当前时区不是中国时区！');
+      console.log('尝试强制设置时区...');
+      now.tz('Asia/Shanghai');
+    }
 
     console.log('当前时间信息:');
     console.log('系统时间:', now.format('YYYY-MM-DD HH:mm:ss'));
@@ -76,11 +86,22 @@ async function runTask() {
 
     console.log('打卡时间范围: 08:20-08:30');
 
-    // 更新时间判断逻辑
-    const timeString = now.format('HH:mm');
-    console.log('当前执行时间点:', timeString);
-    if (timeString < '08:20' || timeString > '08:30') {  // 调整为8:30
-      console.log(`⚠️ 当前时间 ${timeString} 不在打卡时间范围内（08:20-08:30）`);
+    // 更新时间判断逻辑，使用更精确的比较
+    const currentTime = now.format('HH:mm');
+    const startTime = '08:20';
+    const endTime = '08:30';
+
+    console.log('时间判断详情:');
+    console.log(`- 当前时间: ${currentTime}`);
+    console.log(`- 开始时间: ${startTime}`);
+    console.log(`- 结束时间: ${endTime}`);
+
+    if (currentTime < startTime || currentTime > endTime) {
+      console.log(`⚠️ 当前时间 ${currentTime} 不在打卡时间范围内（${startTime}-${endTime}）`);
+      console.log('时间比较结果:', {
+        早于开始时间: currentTime < startTime,
+        晚于结束时间: currentTime > endTime
+      });
       process.exit(1);
       return;
     }
@@ -110,12 +131,14 @@ async function runTask() {
 
     while (retryCount < maxRetries) {
       try {
+        // 修改打卡请求时间格式
+        const clockTime = now.format('YYYY-MM-DD HH:mm:ss');
         const shangbanResponse = await axios.post('https://wmh.opalvision.net:9001/api/attendance/app/clock', {
           address: "江苏省扬州市邗江区新城河路46正北方向50米停车场",
           latitude: 32.37548584197275,
           longitude: 119.40709095248346,
           remote: 0,
-          clockTime: now.format('YYYY-MM-DD HH:mm:ss'),
+          clockTime: clockTime,
         }, {
           headers: {
             Authorization: `Bearer ${token}`,
