@@ -84,24 +84,17 @@ async function runTask() {
     console.log('时区:', now.tz());
     console.log('时间戳:', now.valueOf());
 
-    console.log('打卡时间范围: 08:20-08:30');
+    const targetTime = moment().set({ hour: 8, minute: 25 });
+    const timeDiff = Math.abs(now.diff(targetTime, 'minutes'));
 
-    // 更新时间判断逻辑，使用更精确的比较
-    const currentTime = now.format('HH:mm');
-    const startTime = '08:20';
-    const endTime = '08:30';
+    console.log('时间检查:');
+    console.log(`目标执行时间: 08:25`);
+    console.log(`当前时间: ${now.format('HH:mm')}`);
+    console.log(`时间差: ${timeDiff}分钟`);
 
-    console.log('时间判断详情:');
-    console.log(`- 当前时间: ${currentTime}`);
-    console.log(`- 开始时间: ${startTime}`);
-    console.log(`- 结束时间: ${endTime}`);
-
-    if (currentTime < startTime || currentTime > endTime) {
-      console.log(`⚠️ 当前时间 ${currentTime} 不在打卡时间范围内（${startTime}-${endTime}）`);
-      console.log('时间比较结果:', {
-        早于开始时间: currentTime < startTime,
-        晚于结束时间: currentTime > endTime
-      });
+    // 允许 5 分钟的误差范围
+    if (timeDiff > 5) {
+      console.log('⚠️ 当前时间不在预期执行时间范围内');
       process.exit(1);
       return;
     }
